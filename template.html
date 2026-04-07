@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<title>Carousel</title>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@500;700;900&family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Instrument+Serif&family=Inter+Tight:wght@500;700;800;900&family=Inter:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root {
+    --font-heading: 'Inter Tight', sans-serif;
+    --font-body: 'Space Grotesk', sans-serif;
+    --font-numeral: 'Inter Tight', sans-serif;
+    --color-dark: #0f0f0f;
+    --color-light: #f5f0e8;
+    --color-accent: #d97757;
+    --text-on-dark: #f5f0e8;
+    --text-on-light: #0f0f0f;
+    --text-on-accent: #f5f0e8;
+    --text-on-accent-emph: #0f0f0f;
+    --radius: 8px;
+    --tracking-h: -2.5px;
+    --tracking-h2: -1.8px;
+    --weight-heading: 800;
+    --weight-numeral: 900;
+    --line-h: 0.95;
+    --bignum-opacity: 0.07;
+    --bignum-opacity-accent: 0.13;
+    --heading-transform: none;
+    --heading-italic-style: italic;
+    --bignum-side: right;
+    --bignum-offset: -50px;
+    --dot-margin-side: margin-right;
+    --arrow-char: '→';
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #1a1a1a;
+    padding: 50px 20px;
+    font-family: var(--font-body);
+    min-height: 100vh;
+  }
+
+  .slides {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 40px;
+    justify-content: center;
+  }
+
+  .slide {
+    width: 432px;
+    height: 540px;
+    border-radius: var(--radius);
+    padding: 48px 44px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.55);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .slide.dark { background: var(--color-dark); color: var(--text-on-dark); }
+  .slide.light { background: var(--color-light); color: var(--text-on-light); }
+  .slide.accent { background: var(--color-accent); color: var(--text-on-accent); }
+
+  .bignum {
+    position: absolute;
+    font-family: var(--font-numeral);
+    font-weight: var(--weight-numeral);
+    font-size: 520px;
+    line-height: 0.75;
+    letter-spacing: -30px;
+    bottom: -110px;
+    right: -50px;
+    opacity: var(--bignum-opacity);
+    pointer-events: none;
+  }
+  body.lang-ar .bignum {
+    right: auto;
+    left: -50px;
+  }
+  .slide.dark .bignum { color: var(--text-on-dark); }
+  .slide.light .bignum { color: var(--text-on-light); }
+  .slide.accent .bignum {
+    color: var(--text-on-accent);
+    opacity: var(--bignum-opacity-accent);
+  }
+
+  .top, .bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    z-index: 2;
+  }
+  body.lang-ar .top, body.lang-ar .bottom {
+    text-transform: none;
+    letter-spacing: 0.5px;
+  }
+  .slide.dark .top, .slide.dark .bottom,
+  .slide.accent .top, .slide.accent .bottom { color: rgba(245, 240, 232, 0.55); }
+  .slide.light .top, .slide.light .bottom { color: rgba(15, 15, 15, 0.5); }
+
+  .pagenum { direction: ltr; unicode-bidi: isolate; }
+
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--color-accent);
+    display: inline-block;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+  body.lang-ar .dot {
+    margin-right: 0;
+    margin-left: 8px;
+  }
+  .slide.accent .dot { background: var(--text-on-accent); }
+
+  .content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    z-index: 2;
+  }
+
+  h1 {
+    font-family: var(--font-heading);
+    font-weight: var(--weight-heading);
+    font-size: 56px;
+    line-height: var(--line-h);
+    letter-spacing: var(--tracking-h);
+    text-transform: var(--heading-transform);
+  }
+  h2 {
+    font-family: var(--font-heading);
+    font-weight: var(--weight-heading);
+    font-size: 44px;
+    line-height: 1.0;
+    letter-spacing: var(--tracking-h2);
+    text-transform: var(--heading-transform);
+  }
+  h3 {
+    font-family: var(--font-heading);
+    font-weight: var(--weight-heading);
+    font-size: 34px;
+    line-height: 1.05;
+    letter-spacing: var(--tracking-h2);
+    text-transform: var(--heading-transform);
+  }
+  body.lang-ar h1 { font-size: 42px; line-height: 1.25; letter-spacing: -0.5px; }
+  body.lang-ar h2 { font-size: 34px; line-height: 1.3;  letter-spacing: -0.3px; }
+  body.lang-ar h3 { font-size: 28px; line-height: 1.35; letter-spacing: -0.2px; }
+
+  .body-text {
+    font-family: var(--font-body);
+    font-size: 22px;
+    line-height: 1.4;
+    font-weight: 500;
+  }
+  body.lang-ar .body-text { font-size: 20px; line-height: 1.55; }
+
+  .accent-text { color: var(--color-accent); }
+  .slide.accent .accent-text { color: var(--text-on-accent-emph); }
+  em { font-style: var(--heading-italic-style); font-weight: 500; }
+
+  .arrow { font-size: 18px; font-weight: 400; }
+  .ltr-inline { direction: ltr; unicode-bidi: isolate; display: inline-block; }
+
+  .stack { display: flex; flex-direction: column; gap: 20px; }
+  .row {
+    border-top: 1px solid currentColor;
+    padding-top: 14px;
+  }
+  .row .cat {
+    font-family: var(--font-body);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.6;
+    margin-bottom: 4px;
+    font-weight: 700;
+  }
+  body.lang-ar .row .cat { font-size: 12px; letter-spacing: 0.5px; text-transform: none; }
+  .row .val {
+    font-family: var(--font-heading);
+    font-size: 26px;
+    font-weight: var(--weight-heading);
+    letter-spacing: -0.6px;
+    line-height: 1.1;
+    text-transform: var(--heading-transform);
+  }
+  body.lang-ar .row .val { font-size: 24px; line-height: 1.3; }
+
+  .step {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid currentColor;
+  }
+  .step:last-child { border-bottom: none; }
+  .step-num {
+    font-size: 14px;
+    font-weight: 700;
+    font-family: var(--font-body);
+    color: var(--color-accent);
+    letter-spacing: 1px;
+    direction: ltr;
+  }
+  .slide.accent .step-num { color: var(--text-on-accent-emph); }
+  .step-text {
+    font-size: 24px;
+    font-weight: var(--weight-heading);
+    letter-spacing: -0.4px;
+    font-family: var(--font-heading);
+    text-transform: var(--heading-transform);
+  }
+  body.lang-ar .step-text { font-size: 22px; line-height: 1.4; }
+
+  .cta-main {
+    font-family: var(--font-heading);
+    font-weight: var(--weight-heading);
+    font-size: 64px;
+    line-height: 0.9;
+    letter-spacing: var(--tracking-h);
+    margin-bottom: 24px;
+    text-transform: var(--heading-transform);
+  }
+  body.lang-ar .cta-main { font-size: 50px; line-height: 1.1; letter-spacing: -1px; }
+  .cta-sub {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    opacity: 0.75;
+    line-height: 1.5;
+    margin-top: 24px;
+  }
+
+  body.lang-ar { direction: rtl; }
+  body.lang-ar .slide { direction: rtl; }
+
+  #download-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: var(--color-accent);
+    color: var(--text-on-accent);
+    border: none;
+    padding: 18px 28px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    z-index: 1000;
+    transition: transform 0.2s;
+  }
+  body.lang-ar #download-btn {
+    right: auto; left: 30px;
+    text-transform: none; letter-spacing: 0.5px;
+  }
+  #download-btn:hover { transform: translateY(-2px); }
+  #download-btn:disabled { opacity: 0.6; cursor: wait; }
+</style>
+</head>
+<body>
+
+<div class="slides" id="slides"></div>
+
+<button id="download-btn" onclick="downloadPDF()">↓ Download PDF</button>
+
+<script>
+// ============ SLIDE CONTENT ============
+// REPLACE THIS ARRAY WITH YOUR GENERATED SLIDES
+const slides = [
+  { type: 'hook',  label: 'Why Claude',      tag: 'h1', main: 'ChatGPT users are quietly <span class="accent-text">switching.</span>', sub: "Here's why.", footer: 'Swipe' },
+  { type: 'hook',  label: 'The Claim',       tag: 'h2', main: 'One AI is making people <span class="accent-text">10× smarter</span> overnight.', sub: "Most haven't noticed yet.", footer: 'Keep going' },
+  { type: 'hook',  label: 'Sound Familiar',  tag: 'h3', main: "You've been copy-pasting prompts for months.", sub: 'Getting robotic, generic answers.', footer: 'Yep' },
+  { type: 'hook',  label: 'Meet Claude',     tag: 'h2', main: 'Built to actually <em>think</em>.', sub: 'Not just autocomplete the next word.', footer: 'By Anthropic' },
+  { type: 'hook',  label: 'Writes Like You', tag: 'h2', main: 'No stiff phrases. No "delve."', sub: 'Just clean, sharp prose that sounds like <em>you</em>.', footer: 'Finally' },
+  { type: 'hook',  label: 'Reads Anything',  tag: 'h2', main: 'Drop in a 200-page PDF.', sub: 'Claude answers like it <span class="accent-text">wrote the thing.</span>', footer: 'In seconds' },
+  { type: 'stack', label: 'Does It All',     rows: [
+      { cat: 'Coding',   val: 'Debugs entire repos' },
+      { cat: 'Writing',  val: 'Nails your tone' },
+      { cat: 'Research', val: 'Cites real sources' }
+    ], footer: 'All of it' },
+  { type: 'hook',  label: 'The Truth',       tag: 'h2', main: 'Claude isn\'t "another AI."', sub: 'It\'s the one pros quietly use to <em>outwork everyone.</em>', footer: 'Now you know' },
+  { type: 'steps', label: 'Try It Now',      items: [
+      'Go to <span class="accent-text ltr-inline">claude.ai</span>',
+      'Upload your hardest task',
+      'Watch it solve in one shot'
+    ], footer: 'Free to start' },
+  { type: 'cta',   label: 'Your Move',       main: 'Save this.', sub: 'Before your competitors find it.', cta: 'Comment "CLAUDE" for the prompt vault', footer: '★ Save' }
+];
+
+// Color rhythm — same for every theme/language
+const rhythm = ['dark','light','dark','accent','light','dark','light','accent','dark','accent'];
+
+// ============ THEMES ============
+const themes = {
+  tech: {
+    colors: { dark: '#0f0f0f', light: '#f5f0e8', accent: '#d97757' },
+    text:   { onDark: '#f5f0e8', onLight: '#0f0f0f', onAccent: '#f5f0e8', onAccentEmph: '#0f0f0f' },
+    fonts: {
+      en: { heading: "'Inter Tight', sans-serif", body: "'Space Grotesk', sans-serif", numeral: "'Inter Tight', sans-serif" },
+      ar: { heading: "'IBM Plex Sans Arabic', sans-serif", body: "'Cairo', sans-serif", numeral: "'IBM Plex Sans Arabic', sans-serif" }
+    },
+    weights: { heading: 800, numeral: 900 },
+    radius: '8px',
+    tracking: { h: '-2.5px', h2: '-1.8px' },
+    lineHeight: '0.95',
+    bignumOpacity: 0.07
+  },
+  editorial: {
+    colors: { dark: '#0a0a0a', light: '#fafaf7', accent: '#b8392f' },
+    text:   { onDark: '#fafaf7', onLight: '#0a0a0a', onAccent: '#fafaf7', onAccentEmph: '#0a0a0a' },
+    fonts: {
+      en: { heading: "'Instrument Serif', serif", body: "'Inter Tight', sans-serif", numeral: "'Instrument Serif', serif" },
+      ar: { heading: "'Amiri', serif", body: "'IBM Plex Sans Arabic', sans-serif", numeral: "'Amiri', serif" }
+    },
+    weights: { heading: 400, numeral: 400 },
+    radius: '0px',
+    tracking: { h: '-2px', h2: '-1.5px' },
+    lineHeight: '0.95',
+    bignumOpacity: 0.11
+  },
+  modern: {
+    colors: { dark: '#1a1a1a', light: '#ffffff', accent: '#1e3a8a' },
+    text:   { onDark: '#ffffff', onLight: '#1a1a1a', onAccent: '#ffffff', onAccentEmph: '#ffffff' },
+    fonts: {
+      en: { heading: "'Inter', sans-serif", body: "'Inter', sans-serif", numeral: "'Inter', sans-serif" },
+      ar: { heading: "'IBM Plex Sans Arabic', sans-serif", body: "'IBM Plex Sans Arabic', sans-serif", numeral: "'IBM Plex Sans Arabic', sans-serif" }
+    },
+    weights: { heading: 900, numeral: 900 },
+    radius: '2px',
+    tracking: { h: '-2px', h2: '-1.4px' },
+    lineHeight: '1.0',
+    bignumOpacity: 0.05
+  }
+};
+
+// ============ LANGUAGES ============
+const languages = {
+  en: { dir: 'ltr', htmlLang: 'en', arrow: '→', endLabel: 'End', downloadBtn: '↓ Download PDF' },
+  ar: { dir: 'rtl', htmlLang: 'ar', arrow: '←', endLabel: 'النهاية', downloadBtn: '↓ تحميل PDF' }
+};
+
+// ============ RENDERER ============
+function renderSlides() {
+  const lang = window.currentLanguage || 'en';
+  const langCfg = languages[lang];
+  const container = document.getElementById('slides');
+
+  container.innerHTML = slides.map((s, i) => {
+    const bg = rhythm[i];
+    const num = i + 1;
+    const pageNum = String(num).padStart(2,'0') + ' / 10';
+
+    let body = '';
+    if (s.type === 'hook') {
+      const tag = s.tag || 'h2';
+      body = `<${tag}>${s.main}</${tag}>`;
+      if (s.sub) body += `<div style="height:20px;"></div><div class="body-text" style="opacity:0.6;">${s.sub}</div>`;
+    } else if (s.type === 'stack') {
+      body = `<div class="stack">${s.rows.map(r => `<div class="row"><div class="cat">${r.cat}</div><div class="val">${r.val}</div></div>`).join('')}</div>`;
+    } else if (s.type === 'steps') {
+      body = `<div>${s.items.map((t, idx) => `<div class="step"><span class="step-num">${String(idx+1).padStart(2,'0')}</span><span class="step-text">${t}</span></div>`).join('')}</div>`;
+    } else if (s.type === 'cta') {
+      body = `<div class="cta-main">${s.main}</div><div class="body-text">${s.sub}</div><div class="cta-sub">↓<br>${s.cta}</div>`;
+    }
+
+    const arrowChar = i === slides.length - 1 ? langCfg.endLabel : langCfg.arrow;
+    return `
+      <div class="slide ${bg}">
+        <div class="bignum">${num}</div>
+        <div class="top"><span><span class="dot"></span>${s.label}</span><span class="pagenum">${pageNum}</span></div>
+        <div class="content">${body}</div>
+        <div class="bottom"><span>${s.footer}</span><span class="arrow">${arrowChar}</span></div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ============ THEME APPLICATION ============
+function applyTheme(name) {
+  const t = themes[name];
+  const lang = window.currentLanguage || 'en';
+  const r = document.documentElement;
+  r.style.setProperty('--font-heading', t.fonts[lang].heading);
+  r.style.setProperty('--font-body', t.fonts[lang].body);
+  r.style.setProperty('--font-numeral', t.fonts[lang].numeral);
+  r.style.setProperty('--color-dark', t.colors.dark);
+  r.style.setProperty('--color-light', t.colors.light);
+  r.style.setProperty('--color-accent', t.colors.accent);
+  r.style.setProperty('--text-on-dark', t.text.onDark);
+  r.style.setProperty('--text-on-light', t.text.onLight);
+  r.style.setProperty('--text-on-accent', t.text.onAccent);
+  r.style.setProperty('--text-on-accent-emph', t.text.onAccentEmph);
+  r.style.setProperty('--radius', t.radius);
+  r.style.setProperty('--tracking-h', t.tracking.h);
+  r.style.setProperty('--tracking-h2', t.tracking.h2);
+  r.style.setProperty('--weight-heading', t.weights.heading);
+  r.style.setProperty('--weight-numeral', t.weights.numeral);
+  r.style.setProperty('--line-h', t.lineHeight);
+  r.style.setProperty('--bignum-opacity', t.bignumOpacity);
+  window.currentTheme = name;
+}
+
+// ============ LANGUAGE APPLICATION ============
+function applyLanguage(name) {
+  const l = languages[name];
+  document.documentElement.lang = l.htmlLang;
+  document.documentElement.dir = l.dir;
+  document.body.classList.remove('lang-en', 'lang-ar');
+  document.body.classList.add('lang-' + name);
+  window.currentLanguage = name;
+
+  // Update download button text
+  document.getElementById('download-btn').textContent = l.downloadBtn;
+
+  // Re-apply theme so font swaps to language-appropriate variant
+  if (window.currentTheme) applyTheme(window.currentTheme);
+
+  // Re-render slides so arrow chars and end label update
+  renderSlides();
+}
+
+// ============ INIT ============
+// SET LANGUAGE AND THEME HERE — these two lines get patched per carousel
+applyLanguage('en');
+applyTheme('tech');
+renderSlides();
+
+// ============ PDF DOWNLOAD ============
+async function downloadPDF() {
+  const btn = document.getElementById('download-btn');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  await document.fonts.ready;
+
+  const slidesEls = document.querySelectorAll('.slide');
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit: 'px', format: [1080, 1350], orientation: 'portrait' });
+  const lang = window.currentLanguage || 'en';
+  const isAr = lang === 'ar';
+
+  for (let i = 0; i < slidesEls.length; i++) {
+    btn.textContent = `${i + 1}/${slidesEls.length}...`;
+    const slide = slidesEls[i];
+
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = `position:fixed;left:-99999px;top:0;width:1080px;height:1350px;direction:${isAr ? 'rtl' : 'ltr'};`;
+    const clone = slide.cloneNode(true);
+    clone.style.cssText += ';width:1080px;height:1350px;border-radius:0;padding:120px 110px;box-shadow:none;';
+
+    const h1Size = isAr ? '105px' : '140px';
+    const h2Size = isAr ? '85px'  : '110px';
+    const h3Size = isAr ? '70px'  : '85px';
+    const bodySize = isAr ? '50px' : '55px';
+    const valSize = isAr ? '60px' : '65px';
+    const stepSize = isAr ? '55px' : '60px';
+    const ctaMainSize = isAr ? '125px' : '160px';
+
+    clone.querySelectorAll('h1').forEach(el => { el.style.fontSize = h1Size; });
+    clone.querySelectorAll('h2').forEach(el => { el.style.fontSize = h2Size; });
+    clone.querySelectorAll('h3').forEach(el => { el.style.fontSize = h3Size; });
+    clone.querySelectorAll('.body-text').forEach(el => el.style.fontSize = bodySize);
+    clone.querySelectorAll('.top, .bottom').forEach(el => { el.style.fontSize = '27px'; el.style.letterSpacing = isAr ? '1px' : '5px'; });
+    clone.querySelectorAll('.dot').forEach(el => {
+      el.style.width = '20px'; el.style.height = '20px';
+      if (isAr) { el.style.marginLeft = '20px'; el.style.marginRight = '0'; }
+      else { el.style.marginRight = '20px'; }
+    });
+    clone.querySelectorAll('.arrow').forEach(el => el.style.fontSize = '45px');
+    clone.querySelectorAll('.bignum').forEach(el => {
+      el.style.fontSize = '1300px';
+      el.style.bottom = '-280px';
+      el.style.letterSpacing = '-75px';
+      if (isAr) { el.style.left = '-120px'; el.style.right = 'auto'; }
+      else { el.style.right = '-120px'; }
+    });
+    clone.querySelectorAll('.row .cat').forEach(el => { el.style.fontSize = '27px'; el.style.letterSpacing = isAr ? '1px' : '5px'; });
+    clone.querySelectorAll('.row .val').forEach(el => { el.style.fontSize = valSize; });
+    clone.querySelectorAll('.step').forEach(el => { el.style.padding = '32px 0'; el.style.gap = '40px'; });
+    clone.querySelectorAll('.step-num').forEach(el => el.style.fontSize = '35px');
+    clone.querySelectorAll('.step-text').forEach(el => { el.style.fontSize = stepSize; });
+    clone.querySelectorAll('.cta-main').forEach(el => { el.style.fontSize = ctaMainSize; el.style.marginBottom = '50px'; });
+    clone.querySelectorAll('.cta-sub').forEach(el => el.style.fontSize = '34px');
+
+    wrapper.appendChild(clone);
+    document.body.appendChild(wrapper);
+
+    const canvas = await html2canvas(clone, { width: 1080, height: 1350, scale: 2, useCORS: true, backgroundColor: null });
+    document.body.removeChild(wrapper);
+
+    const img = canvas.toDataURL('image/jpeg', 0.95);
+    if (i > 0) pdf.addPage([1080, 1350], 'portrait');
+    pdf.addImage(img, 'JPEG', 0, 0, 1080, 1350);
+  }
+
+  pdf.save(`carousel-${window.currentTheme}-${window.currentLanguage}.pdf`);
+  btn.disabled = false;
+  btn.textContent = originalText;
+}
+</script>
+
+</body>
+</html>
