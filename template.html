@@ -4,8 +4,6 @@
 <meta charset="UTF-8">
 <title>Carousel</title>
 <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@500;700;900&family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Instrument+Serif&family=Inter+Tight:wght@500;700;800;900&family=Inter:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root {
     --font-heading: 'Inter Tight', sans-serif;
@@ -272,13 +270,100 @@
   }
   #download-btn:hover { transform: translateY(-2px); }
   #download-btn:disabled { opacity: 0.6; cursor: wait; }
+
+  /* ============ PRINT / PDF EXPORT ============
+     Uses the browser's native print-to-PDF so text rendering (especially
+     Arabic shaping / ligatures) goes through the real text engine instead
+     of being rasterized. Each slide becomes its own 1080x1350 page. */
+  @media print {
+    @page {
+      size: 1080px 1350px;
+      margin: 0;
+    }
+    html, body {
+      background: #fff !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    #download-btn { display: none !important; }
+    .slides {
+      display: block !important;
+      gap: 0 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+    .slide {
+      width: 1080px !important;
+      height: 1350px !important;
+      padding: 120px 110px !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      page-break-after: always;
+      break-after: page;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      margin: 0 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .slide:last-child {
+      page-break-after: auto;
+      break-after: auto;
+    }
+
+    /* Scale everything 2.5x from the 432x540 on-screen layout */
+    .top, .bottom { font-size: 27px; letter-spacing: 5px; }
+    body.lang-ar .top, body.lang-ar .bottom { letter-spacing: 1px; }
+    .dot { width: 20px; height: 20px; margin-right: 20px; }
+    body.lang-ar .dot { margin-right: 0; margin-left: 20px; }
+    .arrow { font-size: 45px; }
+
+    h1 { font-size: 140px; }
+    h2 { font-size: 110px; }
+    h3 { font-size: 85px; }
+    body.lang-ar h1 { font-size: 105px; }
+    body.lang-ar h2 { font-size: 85px; }
+    body.lang-ar h3 { font-size: 70px; }
+
+    .body-text { font-size: 55px; }
+    body.lang-ar .body-text { font-size: 50px; }
+
+    .bignum {
+      font-size: 1300px !important;
+      bottom: -280px !important;
+      right: -120px !important;
+      letter-spacing: -75px !important;
+    }
+    body.lang-ar .bignum {
+      left: -120px !important;
+      right: auto !important;
+    }
+
+    .stack { gap: 50px; }
+    .row { padding-top: 35px; }
+    .row .cat { font-size: 27px; letter-spacing: 5px; margin-bottom: 10px; }
+    body.lang-ar .row .cat { font-size: 30px; letter-spacing: 1px; }
+    .row .val { font-size: 65px; }
+    body.lang-ar .row .val { font-size: 60px; }
+
+    .step { padding: 32px 0; gap: 40px; }
+    .step-num { font-size: 35px; }
+    .step-text { font-size: 60px; }
+    body.lang-ar .step-text { font-size: 55px; }
+
+    .cta-main { font-size: 160px; margin-bottom: 50px; }
+    body.lang-ar .cta-main { font-size: 125px; }
+    .cta-sub { font-size: 34px; margin-top: 60px; }
+  }
 </style>
 </head>
 <body>
 
 <div class="slides" id="slides"></div>
 
-<button id="download-btn" onclick="downloadPDF()">↓ Download PDF</button>
+<button id="download-btn" onclick="downloadPDF()">↓ Save as PDF</button>
 
 <script>
 // ============ SLIDE CONTENT ============
@@ -442,76 +527,22 @@ applyLanguage('en');
 applyTheme('tech');
 renderSlides();
 
-// ============ PDF DOWNLOAD ============
+// ============ PDF EXPORT ============
+// Uses the browser's native print-to-PDF. This routes text through the
+// browser's real text-shaping engine, which correctly handles Arabic
+// joining/ligatures, RTL, and complex scripts. The old html2canvas
+// approach rasterized text via canvas and broke Arabic shaping entirely.
+//
+// User flow: click button -> browser print dialog opens -> choose
+// "Save as PDF" as the destination -> pick "Default" margins and
+// turn OFF headers/footers for a clean export.
 async function downloadPDF() {
-  const btn = document.getElementById('download-btn');
-  const originalText = btn.textContent;
-  btn.disabled = true;
-  await document.fonts.ready;
-
-  const slidesEls = document.querySelectorAll('.slide');
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({ unit: 'px', format: [1080, 1350], orientation: 'portrait' });
-  const lang = window.currentLanguage || 'en';
-  const isAr = lang === 'ar';
-
-  for (let i = 0; i < slidesEls.length; i++) {
-    btn.textContent = `${i + 1}/${slidesEls.length}...`;
-    const slide = slidesEls[i];
-
-    const wrapper = document.createElement('div');
-    wrapper.style.cssText = `position:fixed;left:-99999px;top:0;width:1080px;height:1350px;direction:${isAr ? 'rtl' : 'ltr'};`;
-    const clone = slide.cloneNode(true);
-    clone.style.cssText += ';width:1080px;height:1350px;border-radius:0;padding:120px 110px;box-shadow:none;';
-
-    const h1Size = isAr ? '105px' : '140px';
-    const h2Size = isAr ? '85px'  : '110px';
-    const h3Size = isAr ? '70px'  : '85px';
-    const bodySize = isAr ? '50px' : '55px';
-    const valSize = isAr ? '60px' : '65px';
-    const stepSize = isAr ? '55px' : '60px';
-    const ctaMainSize = isAr ? '125px' : '160px';
-
-    clone.querySelectorAll('h1').forEach(el => { el.style.fontSize = h1Size; });
-    clone.querySelectorAll('h2').forEach(el => { el.style.fontSize = h2Size; });
-    clone.querySelectorAll('h3').forEach(el => { el.style.fontSize = h3Size; });
-    clone.querySelectorAll('.body-text').forEach(el => el.style.fontSize = bodySize);
-    clone.querySelectorAll('.top, .bottom').forEach(el => { el.style.fontSize = '27px'; el.style.letterSpacing = isAr ? '1px' : '5px'; });
-    clone.querySelectorAll('.dot').forEach(el => {
-      el.style.width = '20px'; el.style.height = '20px';
-      if (isAr) { el.style.marginLeft = '20px'; el.style.marginRight = '0'; }
-      else { el.style.marginRight = '20px'; }
-    });
-    clone.querySelectorAll('.arrow').forEach(el => el.style.fontSize = '45px');
-    clone.querySelectorAll('.bignum').forEach(el => {
-      el.style.fontSize = '1300px';
-      el.style.bottom = '-280px';
-      el.style.letterSpacing = '-75px';
-      if (isAr) { el.style.left = '-120px'; el.style.right = 'auto'; }
-      else { el.style.right = '-120px'; }
-    });
-    clone.querySelectorAll('.row .cat').forEach(el => { el.style.fontSize = '27px'; el.style.letterSpacing = isAr ? '1px' : '5px'; });
-    clone.querySelectorAll('.row .val').forEach(el => { el.style.fontSize = valSize; });
-    clone.querySelectorAll('.step').forEach(el => { el.style.padding = '32px 0'; el.style.gap = '40px'; });
-    clone.querySelectorAll('.step-num').forEach(el => el.style.fontSize = '35px');
-    clone.querySelectorAll('.step-text').forEach(el => { el.style.fontSize = stepSize; });
-    clone.querySelectorAll('.cta-main').forEach(el => { el.style.fontSize = ctaMainSize; el.style.marginBottom = '50px'; });
-    clone.querySelectorAll('.cta-sub').forEach(el => el.style.fontSize = '34px');
-
-    wrapper.appendChild(clone);
-    document.body.appendChild(wrapper);
-
-    const canvas = await html2canvas(clone, { width: 1080, height: 1350, scale: 2, useCORS: true, backgroundColor: null });
-    document.body.removeChild(wrapper);
-
-    const img = canvas.toDataURL('image/jpeg', 0.95);
-    if (i > 0) pdf.addPage([1080, 1350], 'portrait');
-    pdf.addImage(img, 'JPEG', 0, 0, 1080, 1350);
+  // Make sure web fonts are loaded before the print dialog renders,
+  // otherwise the first print can fall back to system fonts.
+  if (document.fonts && document.fonts.ready) {
+    await document.fonts.ready;
   }
-
-  pdf.save(`carousel-${window.currentTheme}-${window.currentLanguage}.pdf`);
-  btn.disabled = false;
-  btn.textContent = originalText;
+  window.print();
 }
 </script>
 
