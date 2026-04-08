@@ -72,17 +72,31 @@ This builds trust, shows you actually thought about the topic, and gives the use
 
 ## Step 4 — Propose 2 themes
 
-Use `playbook-themes.md` to pick 2 themes that fit the topic, with a one-line rationale each. Format:
+Use `playbook-themes.md` to pick 2 themes that fit the topic. **Use the `AskUserQuestion` tool** to present them as tappable options — do not ask in prose. The tool renders an interactive picker the user can tap, which is much faster than typing, especially on mobile.
 
-> "Two theme directions for this:
-> - **Tech** — [why it fits]
-> - **Editorial** — [why it fits]
->
-> Which one?"
+Call the tool with a single question. Format:
 
-Always offer exactly 2, not 3. Two forces a real choice. Three creates analysis paralysis.
+```
+questions: [{
+  question: "Which theme direction fits best?",
+  header: "Theme",
+  multiSelect: false,
+  options: [
+    { label: "Tech",      description: "[one-line rationale tied to the topic]" },
+    { label: "Editorial", description: "[one-line rationale tied to the topic]" }
+  ]
+}]
+```
+
+(Substitute the two themes the topic actually warrants — not always Tech/Editorial.)
+
+Always offer exactly 2 options, not 3. Two forces a real choice. Three creates analysis paralysis. Before calling the tool, write one short conversational line (e.g., "Two directions fit this well:") so the tool call isn't silent.
 
 The themes-to-topics mapping is in `playbook-themes.md`. Read it before proposing.
+
+After calling `AskUserQuestion`, your turn ends — the user's selection comes back as their next message. Do not continue writing or start building until they answer.
+
+**Note on tool availability:** `AskUserQuestion` is the canonical tool name documented in the Agent SDK. On some Claude surfaces (e.g., the claude.ai consumer app) the equivalent tool may be exposed under a different name (like `ask_user_input_v0`). If `AskUserQuestion` is not available in the current environment, fall back to the equivalent interactive-picker tool that *is* available, with the same 2-option structure. Only fall back to prose bullets if no interactive-picker tool exists at all.
 
 ## Step 5 — Wait
 
