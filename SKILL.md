@@ -114,7 +114,7 @@ For Arabic carousels, also follow `playbook-language-arabic.md` for any per-slid
 Use `present_files` with the carousel HTML file. Then write a short note (3-4 lines max):
 
 > "Carousel ready. **Theme:** [theme]. **Language:** [language]. **Hook angle:** [one line on the angle].
-> Open the file in your browser and click the orange ↓ Download PDF button to export. The PDF download won't work inside Claude's artifact viewer — needs a real browser tab.
+> Open the file in your browser and click the orange ↓ Save as PDF button. It opens the browser's print dialog — choose 'Save as PDF' as the destination, set margins to 'Default' or 'None', and turn **off** headers and footers for a clean export. This must be done in a real browser tab, not inside Claude's artifact viewer.
 > Tell me what to change."
 
 That's it. Don't write a long explanation. Don't summarize all 10 slides. The user can read the carousel themselves.
@@ -188,6 +188,6 @@ You don't need to read all of them every time. Read selectively based on the req
 
 **Re-presenting on every edit.** After a patch, one line of confirmation is enough. The user has the file open.
 
-**Forgetting the PDF download caveat.** Always mention that the download button only works when the file is opened in a real browser tab, not inside Claude's artifact viewer. Users hit this every time.
+**Forgetting the PDF export caveat.** Always tell the user: (1) the export button opens the browser's print dialog, they then pick "Save as PDF" as the destination, (2) it only works in a real browser tab, not inside Claude's artifact viewer, (3) they should turn off headers/footers in the print dialog for a clean export. Users hit these every time.
 
 **Over-explaining.** This skill produces visual content. The output is the file. Long preambles and postambles dilute the deliverable.
